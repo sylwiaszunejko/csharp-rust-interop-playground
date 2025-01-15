@@ -19,11 +19,12 @@ class Program
     {
         return Task.Run(async () =>
         {
-            while (!cass_future_ready(future))
-            {
-                Console.WriteLine("Waiting for Rust task to complete...");
-                await Task.Delay(500); // Poll every 500ms
-            }
+            cass_future_wait(future);
+            // while (!cass_future_ready(future))
+            // {
+            //     Console.WriteLine("Waiting for Rust task to complete...");
+            //     await Task.Delay(500); // Poll every 500ms
+            // }
         });
     }
 
