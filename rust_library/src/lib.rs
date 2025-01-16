@@ -53,23 +53,28 @@ pub extern "C" fn cass_rust_hello_world() -> *const CassFuture {
 }
 
 #[no_mangle]
-pub extern "C" fn async_connect_and_run_query(uri: *const c_char) -> *const CassFuture {
-    println!("Hello, World!");
-
+pub extern "C" fn async_connect_and_run_query(uri: *const c_char, id: *const c_char) -> *const CassFuture {
     // Convert the raw C string to a Rust string
     let uri = unsafe {
         assert!(!uri.is_null());
         CStr::from_ptr(uri).to_string_lossy().into_owned()
     };
 
+    let id = unsafe {
+        assert!(!id.is_null());
+        CStr::from_ptr(id).to_string_lossy().into_owned()
+    };
+
+    println!("Hello, World! {}", id);
+
     CassFuture::make_raw(async move {
-        println!("Create Session...");
+        println!("Create Session... {}", id);
 
         let session: Session = SessionBuilder::new().known_node(uri).build().await.map_err(|err| (err.to_string()))?;
 
-        println!("Connected to ScyllaDB!");
+        println!("Connected to ScyllaDB! {}", id);
 
-        println!("Create Keyspace");
+        println!("Create Keyspace {}", id);
 
         // Create a keyspace and table (if not already created)
         session
@@ -79,7 +84,7 @@ pub extern "C" fn async_connect_and_run_query(uri: *const c_char) -> *const Cass
             )
             .await.map_err(|err| (err.to_string()))?;
 
-        println!("Create Table");
+        println!("Create Table {}", id);
 
         session
             .query_unpaged(
@@ -88,20 +93,20 @@ pub extern "C" fn async_connect_and_run_query(uri: *const c_char) -> *const Cass
             )
             .await.map_err(|err| (err.to_string()))?;
 
-        println!("Insert Value");
+        println!("Insert Value {}", id);
         // Insert a value into the table
         let to_insert: i32 = 12345;
         session
             .query_unpaged("INSERT INTO ks.extab (a) VALUES(?)", (to_insert,))
             .await.map_err(|err| (err.to_string()))?;
 
-        println!("Read Value");
+        println!("Read Value {}", id);
         // Query rows from the table and print them
         let mut iter = session.query_iter("SELECT a FROM ks.extab", &[])
             .await.map_err(|err| (err.to_string()))?
             .rows_stream::<(i32,)>().map_err(|err| (err.to_string()))?;
         while let Some(read_row) = iter.try_next().await.map_err(|err| (err.to_string()))? {
-            println!("Read a value from row: {}", read_row.0);
+            println!("Read a value from row: {}, {}", read_row.0, id);
         }
 
         Ok(CassResultValue::Empty)
