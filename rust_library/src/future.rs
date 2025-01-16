@@ -4,6 +4,8 @@ use std::future::Future;
 use crate::RUNTIME;
 use tokio::task::JoinHandle;
 use std::mem;
+use std::os::raw::c_char;
+use std::ffi::CString;
 
 pub enum CassResultValue {
     Empty,
@@ -186,5 +188,44 @@ pub unsafe extern "C" fn cass_future_ready(future_raw: *const CassFuture) -> boo
     match state_guard.value {
         None => false,
         Some(_) => true,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn cass_future_debug_info(future: *const CassFuture) -> *const c_char {
+    if future.is_null() {
+        return std::ptr::null();
+    }
+
+    let future = unsafe { &*future };
+    let state = future.state.lock().unwrap();
+
+    // Format the CassFutureResult
+    let result_info = match &state.value {
+        None => "No result yet".to_string(),
+        Some(Ok(CassResultValue::Empty)) => "Result is empty".to_string(),
+        Some(Ok(CassResultValue::QueryResult(value))) => format!("Query Result: {}", value),
+        Some(Ok(CassResultValue::QueryError(err))) => format!("Query Error: {}", err),
+        Some(Err(err)) => format!("Error: {:?}", err),
+    };
+
+    // Include the error string (if any)
+    let error_info = state.err_string.as_deref().unwrap_or("No error");
+
+    // Combine the debug information
+    let debug_info = format!(
+        "Result: {}, Error: {}",
+        result_info, error_info
+    );
+
+    CString::new(debug_info).unwrap().into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn cass_future_free_string(s: *mut c_char) {
+    if !s.is_null() {
+        unsafe {
+            CString::from_raw(s); // Reclaims memory allocated by `CString::into_raw`
+        }
     }
 }

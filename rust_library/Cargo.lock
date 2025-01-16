@@ -576,6 +576,7 @@ dependencies = [
 name = "rust_library"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "scylla",
  "thiserror 1.0.69",
  "tokio",
