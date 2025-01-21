@@ -112,3 +112,52 @@ pub extern "C" fn async_connect_and_run_query(uri: *const c_char, id: *const c_c
         Ok(CassResultValue::Empty)
     })
 }
+
+#[no_mangle]
+pub extern "C" fn async_connect(uri: *const c_char, id: *const c_char) -> *const CassFuture {
+    // Convert the raw C string to a Rust string
+    let uri = unsafe {
+        assert!(!uri.is_null());
+        CStr::from_ptr(uri).to_string_lossy().into_owned()
+    };
+
+    let id = unsafe {
+        assert!(!id.is_null());
+        CStr::from_ptr(id).to_string_lossy().into_owned()
+    };
+
+    println!("Hello, World! {}", id);
+
+    CassFuture::make_raw(async move {
+        println!("Create Session... {}", id);
+
+        let _session: Session = SessionBuilder::new().known_node(uri).build().await.map_err(|err| (err.to_string()))?;
+
+        println!("Connected to ScyllaDB! {}", id);
+
+        Ok(CassResultValue::Empty)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn async_run_query(future: *const CassFuture, query: *const c_char)
+{
+    // Convert the raw C string to a Rust string
+    let query = unsafe {
+        assert!(!query.is_null());
+        CStr::from_ptr(query).to_string_lossy().into_owned()
+    };
+
+    CassFuture::make_raw(async move {
+        println!("Run Query... {}", query);
+
+        session
+            .query_unpaged(
+                "CREATE TABLE IF NOT EXISTS ks.extab (a int primary key)",
+                &[],
+            )
+            .await.map_err(|err| (err.to_string()))?;
+
+        Ok(CassResultValue::Empty)
+    })
+}
