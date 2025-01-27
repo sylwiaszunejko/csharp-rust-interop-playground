@@ -1,3 +1,4 @@
 rust_library/target
 csharp_program/bin
 csharp_program/obj
+**/.idea

@@ -3,19 +3,25 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra
 {
-    public class Session : IInternalSession
+    public class Session(IntPtr rustSessionId) : IInternalSession
     {
         [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr async_run_query(IntPtr future, string query);
+        private static extern bool session_future_ready(IntPtr session);
 
         [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool cass_future_ready(IntPtr future);
+        private static extern IntPtr create_session(IntPtr str, IntPtr id);
+
+        [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool session_future_free(IntPtr session);
+
+        private IntPtr rustSessionID = rustSessionId;
+
 
         public static Task WaitForCassFuture(IntPtr future)
         {
             return Task.Run(async () =>
             {
-                while (!cass_future_ready(future))
+                while (!session_future_ready(future))
                 {
                     Console.WriteLine($"Waiting for Rust task to complete...");
                     await Task.Yield(); // Yield control to let other tasks run
