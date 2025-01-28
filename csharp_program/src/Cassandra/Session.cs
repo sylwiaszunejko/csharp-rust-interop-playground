@@ -9,37 +9,47 @@ namespace Cassandra
         private static extern bool session_future_ready(IntPtr session);
 
         [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr create_session(IntPtr str, IntPtr id);
+        private static extern IntPtr create_session(string str, string id);
 
         [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool session_future_free(IntPtr session);
 
         private IntPtr rustSessionID = rustSessionId;
 
-
-        public static Task WaitForCassFuture(IntPtr future)
+        private static Task WaitForSessionFuture(IntPtr future, string id)
         {
             return Task.Run(async () =>
             {
                 while (!session_future_ready(future))
                 {
-                    Console.WriteLine($"Waiting for Rust task to complete...");
+                    Console.WriteLine($"Waiting for Rust task to complete... {id}");
                     await Task.Yield(); // Yield control to let other tasks run
                 }
             });
         }
 
-        public Task ExecuteAsync(IntPtr session_future, string statement)
+        public static Task<Session> CreateSessionAsync(string uri, string id)
         {
             return Task.Run(async () =>
             {
-                IntPtr resultPtr = async_run_query(session_future, statement);
-                await WaitForCassFuture(resultPtr);
+                IntPtr resultPtr = create_session(uri, id);
+                await WaitForSessionFuture(resultPtr, id);
+                return new Session(resultPtr);
             });
         }
 
+        // public Task ExecuteAsync(IntPtr session_future, string statement)
+        // {
+        //     return Task.Run(async () =>
+        //     {
+        //         IntPtr resultPtr = async_run_query(session_future, statement);
+        //         await WaitForCassFuture(resultPtr);
+        //     });
+        // }
+
         public void Dispose()
         {
+            session_future_free(rustSessionID);
         }
     }
 }

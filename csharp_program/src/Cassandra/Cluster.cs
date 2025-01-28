@@ -58,37 +58,27 @@ namespace Cassandra
                 initializer.ContactPoints.Concat(nonIpEndPointContactPoints));
         }
 
-        public ISession Connect()
-        {
-            return Connect("DefaultKeyspace");
-        }
+        // public Task<ISession> ConnectAsync()
+        // {
+        //     return ConnectAsync("Configuration.ClientOptions.DefaultKeyspace");
+        // }
 
-        public Task<ISession> ConnectAsync()
-        {
-            return ConnectAsync("Configuration.ClientOptions.DefaultKeyspace");
-        }
-
-        public ISession Connect(string keyspace)
-        {
-            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
-        }
-
-        public async Task<ISession> ConnectAsync(string keyspace)
-        {
-            if (contactPoints == null || !contactPoints.Any())
-            {
-                throw new InvalidOperationException("Contact points cannot be null or empty.");
-            }
-            var firstContactPoint = contactPoints.First();
-            if (firstContactPoint == null)
-            {
-                throw new InvalidOperationException("First contact point cannot be null.");
-            }
-            string uri = firstContactPoint?.ToString() ?? throw new InvalidOperationException("First contact point cannot be null.");
-            string id = "1234";
-            IntPtr resultPtr = async_connect_and_run_query(uri, id);
-            await WaitForCassFuture(resultPtr, id);
-            return new Session();
-        }
+        // public async Task<ISession> ConnectAsync(string keyspace)
+        // {
+        //     if (contactPoints == null || !contactPoints.Any())
+        //     {
+        //         throw new InvalidOperationException("Contact points cannot be null or empty.");
+        //     }
+        //     var firstContactPoint = contactPoints.First();
+        //     if (firstContactPoint == null)
+        //     {
+        //         throw new InvalidOperationException("First contact point cannot be null.");
+        //     }
+        //     string uri = firstContactPoint?.ToString() ?? throw new InvalidOperationException("First contact point cannot be null.");
+        //     string id = "1234";
+        //     IntPtr resultPtr = async_connect_and_run_query(uri, id);
+        //     await WaitForCassFuture(resultPtr, id);
+        //     return new Session();
+        // }
     }
 }
