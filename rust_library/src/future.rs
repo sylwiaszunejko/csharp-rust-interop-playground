@@ -10,6 +10,12 @@ pub enum CassFutureResult<T, V> {
     Completed,
 }
 
+impl<T, V> CassFutureResult<T, V> {
+    pub fn is_err(&self) -> bool {
+        matches!(self, CassFutureResult::Error(_))
+    }
+}
+
 pub struct CassFuture<T, V> {
     pub result: Mutex<CassFutureResult<T, V>>,
     join_handle: Mutex<Option<JoinHandle<()>>>,
@@ -30,12 +36,12 @@ impl<T, V> CassFuture<T, V> {
 
         let cass_fut_clone = cass_fut.clone();
         *cass_fut.join_handle.lock().unwrap() = Some(RUNTIME.spawn(async move {
-            let result = fut.await;
+            let result = fut.await.into();
             if result.is_err() {
-                *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Error(result.into());
+                *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Error(result);
                 return;
             }
-            *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Result(result.into());
+            *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Result(result);
         }));
 
         cass_fut
