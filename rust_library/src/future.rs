@@ -36,12 +36,15 @@ impl<T, V> CassFuture<T, V> {
 
         let cass_fut_clone = cass_fut.clone();
         *cass_fut.join_handle.lock().unwrap() = Some(RUNTIME.spawn(async move {
-            let result = fut.await.into();
-            if result.is_err() {
-                *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Error(result);
-                return;
-            }
-            *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Result(result);
+            *cass_fut_clone.result.lock().unwrap() = fut.await.into();
+            // let result = fut.await;
+            // let mut lock = cass_fut_clone.result.lock().unwrap();
+            // *lock = result.into();
+            // if result.is_err() {
+            //     *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Error(result.into());
+            //     return;
+            // }
+            // *cass_fut_clone.result.lock().unwrap() = CassFutureResult::Result(result.into());
         }));
 
         cass_fut

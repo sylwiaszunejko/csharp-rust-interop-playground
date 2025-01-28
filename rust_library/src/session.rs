@@ -1,5 +1,4 @@
 use std::ffi::{c_void, CStr};
-use std::ops::Deref;
 use std::os::raw::c_char;
 use scylla::SessionBuilder;
 use scylla::transport::errors::NewSessionError;
