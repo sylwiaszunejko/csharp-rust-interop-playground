@@ -1,4 +1,4 @@
-use std::ffi::{c_void, CStr};
+use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
 use scylla::SessionBuilder;
 use scylla::transport::errors::NewSessionError;
@@ -44,6 +44,24 @@ pub unsafe extern "C" fn session_future_ready(ptr: *const c_void) -> bool {
         return false;
     }
     unsafe { &mut *(ptr as *mut CassFuture<GenericSession<CurrentDeserializationApi>, NewSessionError>) }.is_ready()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn session_future_get_result(ptr: *const c_void) -> *const c_void {
+    if ptr.is_null() {
+        return std::ptr::null();
+    }
+    let fut = unsafe { &mut *(ptr as *mut CassFuture<GenericSession<CurrentDeserializationApi>, NewSessionError>) };
+    match *fut.result.lock().unwrap() {
+        CassFutureResult::Result(ref res) => {
+            res as *const _ as *const c_void
+        },
+        CassFutureResult::Error(ref err) => {
+            let error_message = CString::new(err.to_string()).unwrap();
+            error_message.into_raw() as *const c_void
+        },
+        _ => std::ptr::null(),
+    }
 }
 
 #[no_mangle]
