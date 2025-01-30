@@ -15,6 +15,11 @@ namespace Cassandra
         private static extern bool session_future_free(IntPtr session);
         [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr session_future_get_result(IntPtr session);
+        [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr execute_query(IntPtr session, string query);
+        [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool query_future_ready(IntPtr query);
+
 
         private IntPtr rustSessionID = rustSessionId;
 
@@ -25,6 +30,18 @@ namespace Cassandra
                 while (!session_future_ready(future))
                 {
                     Console.WriteLine($"Waiting for Rust task to complete... {id}");
+                    await Task.Yield(); // Yield control to let other tasks run
+                }
+            });
+        }
+
+        private static Task WaitForQueryFuture(IntPtr future)
+        {
+            return Task.Run(async () =>
+            {
+                while (!query_future_ready(future))
+                {
+                    Console.WriteLine("Waiting for Rust task to complete querying...");
                     await Task.Yield(); // Yield control to let other tasks run
                 }
             });
@@ -58,14 +75,16 @@ namespace Cassandra
             });
         }
 
-        // public Task ExecuteAsync(IntPtr session_future, string statement)
-        // {
-        //     return Task.Run(async () =>
-        //     {
-        //         IntPtr resultPtr = async_run_query(session_future, statement);
-        //         await WaitForCassFuture(resultPtr);
-        //     });
-        // }
+        public Task ExecuteAsync(string statement)
+        {
+            return Task.Run(async () =>
+            {
+                Console.WriteLine("Start Executing query... from C#");
+                IntPtr resultPtr = execute_query(rustSessionID, statement);
+                await WaitForQueryFuture(resultPtr);
+                Console.WriteLine("Query executed successfully from C#.");
+            });
+        }
 
         public void Dispose()
         {
