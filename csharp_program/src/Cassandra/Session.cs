@@ -19,6 +19,8 @@ namespace Cassandra
         private static extern IntPtr execute_query(IntPtr session, string query);
         [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool query_future_ready(IntPtr query);
+        [DllImport("rust_library", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr query_future_get_result(IntPtr query);
 
 
         private IntPtr rustSessionID = rustSessionId;
@@ -80,9 +82,26 @@ namespace Cassandra
             return Task.Run(async () =>
             {
                 Console.WriteLine("Start Executing query... from C#");
-                IntPtr resultPtr = execute_query(rustSessionID, statement);
-                await WaitForQueryFuture(resultPtr);
+                IntPtr queryPtr = execute_query(rustSessionID, statement);
+                await WaitForQueryFuture(queryPtr);
                 Console.WriteLine("Query executed successfully from C#.");
+                IntPtr resultPtr = query_future_get_result(queryPtr);
+                if (resultPtr == IntPtr.Zero)
+                {
+                    Console.WriteLine("Query future is not ready or no result.");
+                }
+                else
+                {
+                    string errorMessage = Marshal.PtrToStringAnsi(resultPtr);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        Console.WriteLine($"Error occurred: {errorMessage}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No error, result processed.");
+                    }
+                }
             });
         }
 

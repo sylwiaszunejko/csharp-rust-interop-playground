@@ -38,7 +38,7 @@ class Program
             // Use the session object as needed
             Console.WriteLine("Session created successfully.");
 
-            await session.ExecuteAsync("CREIF NOT EXISTS ATE KEYSPACE test_ks WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };");
+            await session.ExecuteAsync("CREATE KEYSPACE test_ks WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };");
         }
         catch (Exception ex)
         {
