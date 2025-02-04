@@ -1,25 +1,32 @@
-use scylla::_macro_internal::ColumnType;
-use scylla::deserialize::DeserializeValue;
-
+use scylla::_macro_internal::{
+    ColumnIterator, ColumnSpec, ColumnType, DeserializationError, TypeCheckError,
+};
+use scylla::deserialize::{DeserializeRow, DeserializeValue};
+use std::ptr::null;
 
 // You can implement DeserializeValue for your own types
 #[derive(PartialEq, Eq, Debug)]
-pub (crate) struct WQueryResult(*const u8);
+pub(crate) struct WQueryResult(*const [*const u8]);
 
-impl<'frame, 'metadata> DeserializeValue<'frame, 'metadata> for WQueryResult {
-    fn type_check(
-        _: &ColumnType,
-    ) -> Result<(), scylla::deserialize::TypeCheckError> {
+impl<'frame, 'metadata> DeserializeRow<'frame, 'metadata> for WQueryResult {
+    fn type_check(specs: &[ColumnSpec]) -> Result<(), TypeCheckError> {
         Ok(())
     }
 
-    fn deserialize(
-        _: &'metadata ColumnType<'metadata>,
-        v: Option<scylla::deserialize::FrameSlice<'frame>>,
-    ) -> Result<Self, scylla::deserialize::DeserializationError> {
-        if v.is_none() {
-            return Ok(WQueryResult(std::ptr::null()));
+    /// Deserializes a row from given column iterator.
+    ///
+    /// This function can assume that the driver called `type_check` to verify
+    /// the row's type. Note that `deserialize` is not an unsafe function,
+    /// so it should not use the assumption about `type_check` being called
+    /// as an excuse to run `unsafe` code.
+    fn deserialize(mut row: ColumnIterator<'frame, 'metadata>) -> Result<Self, DeserializationError> {
+        // let mut data: [*const u8] =;
+        while let Some(column) = row
+            .next()
+            .transpose()
+            .map_err(DeserializationError::new)? {
+            let tmp  = column.slice.unwrap().to_bytes().as_ptr();
         }
-        Ok(WQueryResult(v.unwrap().to_bytes().as_ptr()))
+        Ok(WQueryResult(null()))
     }
 }

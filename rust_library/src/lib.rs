@@ -16,6 +16,7 @@ mod arfcffi;
 mod testing;
 mod result;
 mod session;
+mod ffi;
 
 pub static RUNTIME: LazyLock<Runtime> = LazyLock::new(|| Runtime::new().unwrap());
 
